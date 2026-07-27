@@ -36,10 +36,9 @@ ENV HOMEBREW_PREFIX="/home/linuxbrew/.linuxbrew"
 ENV HOMEBREW_CELLAR="/home/linuxbrew/.linuxbrew/Cellar"
 ENV HOMEBREW_REPOSITORY="/home/linuxbrew/.linuxbrew/Homebrew"
 
-# Pin the OpenClaw version this template is verified against (latest stable: 2026.6.6).
-# entrypoint.sh installs openclaw@${OPENCLAW_VERSION} at boot; override in Railway
-# Variables to deploy a different version without rebuilding the image.
-ENV OPENCLAW_VERSION=2026.6.6
+# The version this image is built with. It is installed below, at build time, so
+# the image is the artefact and a start does not depend on npm being reachable.
+ENV OPENCLAW_VERSION=2026.7.1-2
 ENV PORT=8080
 ENV OPENCLAW_ENTRY=/usr/local/lib/node_modules/openclaw/dist/entry.js
 EXPOSE 8080
@@ -48,4 +47,11 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD curl -f http://localhost:8080/setup/healthz || exit 1
 
 USER root
+
+# Installed here rather than on every boot. entrypoint.sh compares the installed
+# version with OPENCLAW_VERSION and skips the install when they match - so this
+# turns a network call on the start path into a no-op, while leaving the override
+# intact: set a different OPENCLAW_VERSION and it still installs at boot.
+RUN npm install -g openclaw@${OPENCLAW_VERSION}
+
 ENTRYPOINT ["./entrypoint.sh"]
